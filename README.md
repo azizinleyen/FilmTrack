@@ -189,6 +189,7 @@ The backend exposes clean REST endpoints for frontend communication:
 
 Distributed under the **MIT License**. See `LICENSE` for more information.
 
+
 ---
 
 <div align="center">
