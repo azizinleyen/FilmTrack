@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html lang="tr" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title id="page-title">FilmTrack</title>
+  <link rel="icon" href="data:,">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'sans-serif'] },
+          colors: {
+            app: {
+              bg: '#080d19',        // Koyu antrasit gece mavisi
+              sidebar: '#0d1424',   // Sol kenar çubuğu
+              card: '#111a2e',      // Kart zemini
+              border: '#1a263f',    // İnce hatlar
+              hover: '#16223b',
+              accent: '#2563eb'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #080d19; }
+    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #334155; }
+  </style>
+</head>
+<body class="bg-app-bg text-slate-200 font-sans antialiased min-h-screen flex selection:bg-blue-600 selection:text-white">
+
+  <!-- SOL KENAR ÇUBUĞU (SIDEBAR) -->
+  <aside class="w-56 md:w-60 bg-app-sidebar border-r border-app-border flex-shrink-0 flex flex-col h-screen sticky top-0 px-3.5 py-5 z-10">
+    <!-- Logo ve Dinamik Marka Adı -->
+    <div class="flex items-center gap-3 mb-6 px-1">
+      <div id="brand-icon-wrapper" class="w-9 h-9 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400 shadow-lg shadow-blue-500/10 flex-shrink-0">
+        <i id="brand-icon" data-lucide="disc-3" class="w-5 h-5 animate-[spin_12s_linear_infinite]"></i>
+      </div>
+      <div>
+        <h1 id="brand-title" class="text-lg font-bold tracking-tight text-white leading-none">FilmTrack</h1>
+      </div>
+    </div>
+
+    <!-- Kütüphane Seçicileri: Filmler ve Diziler -->
+    <div class="space-y-1.5 mb-2">
+      <!-- 1. Filmler Butonu -->
+      <button id="nav-movies-btn" onclick="switchMediaType('movies')" class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl font-medium text-xs md:text-sm bg-blue-600/20 text-blue-400 border border-blue-500/30 shadow-lg shadow-blue-900/20 transition-all">
+        <div class="flex items-center gap-2.5">
+          <i data-lucide="film" class="w-4 h-4"></i>
+          <span>Filmler</span>
+        </div>
+        <span id="nav-movies-count" class="text-[11px] bg-blue-500/20 text-blue-300 font-semibold px-2 py-0.5 rounded-full">0</span>
+      </button>
+
+      <!-- 2. Diziler Butonu -->
+      <button id="nav-series-btn" onclick="switchMediaType('series')" class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl font-medium text-xs md:text-sm text-slate-400 hover:text-white hover:bg-slate-800/40 border border-transparent transition-all">
+        <div class="flex items-center gap-2.5">
+          <i data-lucide="tv" class="w-4 h-4"></i>
+          <span>Diziler</span>
+        </div>
+        <span id="nav-series-count" class="text-[11px] bg-slate-800 text-slate-400 font-semibold px-2 py-0.5 rounded-full">0</span>
+      </button>
+    </div>
+
+    <div class="mt-5 mb-3 px-1 flex items-center justify-between">
+      <div class="flex items-center gap-2 text-slate-400 font-semibold text-[11px] uppercase tracking-wider">
+        <i data-lucide="tag" class="w-3.5 h-3.5 text-slate-500"></i>
+        <span>Etiketler ve Türler</span>
+      </div>
+    </div>
+
+    <!-- Dinamik Etiketler: Tek satır sekmeler -->
+    <div id="sidebar-tags" class="flex flex-col gap-1.5 overflow-y-auto max-h-[calc(100vh-230px)] pr-1"></div>
+  </aside>
+
+  <!-- SAĞ ANA İÇERİK ALANI -->
+  <main class="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto">
+    
+    <!-- ÜST ÇUBUK (HEADER) -->
+    <header class="px-6 md:px-8 py-5 border-b border-app-border sticky top-0 bg-app-bg z-20 flex items-center justify-between gap-6">
+      
+      <!-- CANLI ARAMA KUTUSU -->
+      <div class="relative flex-1 max-w-xl">
+        <div class="relative flex items-center">
+          <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-4 pointer-events-none"></i>
+          <input 
+            type="text" 
+            id="local-search-input" 
+            placeholder="Koleksiyonunda ara..." 
+            autocomplete="off"
+            spellcheck="false"
+            oninput="handleLocalSearch(this.value)"
+            class="w-full bg-app-sidebar border border-app-border rounded-xl pl-11 pr-10 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 shadow-inner"
+          >
+          <button id="clear-search-btn" onclick="clearLocalSearch()" class="absolute right-3.5 text-slate-500 hover:text-slate-300 hidden">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- SAĞ KONTROLLER: "+ Film/Dizi Ekle" ve Görünüm Seçici -->
+      <div class="flex items-center gap-3">
+        
+        <button id="main-add-button" onclick="openAddModal()" class="flex items-center justify-center gap-2 px-6 py-2.5 min-w-[145px] rounded-xl text-sm font-semibold bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/30 transition-all hover:scale-[1.02] active:scale-[0.98]">
+          <i data-lucide="plus-circle" class="w-4 h-4"></i>
+          <span id="add-btn-text">Film Ekle</span>
+        </button>
+
+        <!-- Galeri / Liste Butonları -->
+        <div class="flex items-center bg-app-sidebar border border-app-border rounded-xl p-1 shadow-sm gap-1">
+          <button id="view-btn-gallery" onclick="switchView('gallery')" class="flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-white transition">
+            <i data-lucide="layout-grid" class="w-4 h-4"></i>
+            <span>Galeri</span>
+          </button>
+          <button id="view-btn-list" onclick="switchView('list')" class="flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white shadow-md shadow-blue-600/30 transition">
+            <i data-lucide="list" class="w-4 h-4"></i>
+            <span>Liste</span>
+          </button>
+        </div>
+
+      </div>
+    </header>
+
+    <!-- İÇERİK GÖVDESİ -->
+    <div class="px-6 md:px-8 py-6 flex-1">
+      
+      <!-- ================= 1. LİSTE GÖRÜNÜMÜ ================= -->
+      <section id="view-list" class="space-y-6">
+        <div class="flex items-end justify-between border-b border-app-border/60 pb-5">
+          <div>
+            <h2 id="view-title" class="text-2xl md:text-3xl font-extrabold text-white tracking-tight">Tüm Filmler</h2>
+            <p id="view-subtitle" class="text-sm text-slate-400 mt-1">Koleksiyonundaki tüm yapımları burada görebilirsin.</p>
+          </div>
+          <div class="text-sm font-semibold text-slate-400">
+            <span class="text-slate-600">|</span> <span id="media-badge-count">0 film</span>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto rounded-2xl border border-app-border/80 bg-app-sidebar/40 shadow-xl">
+          <table class="w-full text-left text-sm border-collapse min-w-[900px]">
+            <thead>
+              <tr class="border-b border-app-border bg-app-sidebar/80 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                <th class="py-3.5 px-4 w-24">Afiş</th>
+                <th id="th-title-col" class="py-3.5 px-4 min-w-[180px]">Film Adı & Yıl</th>
+                <th id="th-creator-col" class="py-3.5 px-4 min-w-[150px]">Yönetmen / Yapımcı</th>
+                <th class="py-3.5 px-4 min-w-[200px]">Etiketler / Türler</th>
+                <th class="py-3.5 px-4 w-28">Puanım</th>
+                <th class="py-3.5 px-4 w-24">IMDb</th>
+                <th class="py-3.5 px-4 min-w-[240px]">Kişisel Not</th>
+                <th class="py-3.5 px-4 w-24 text-center">İşlemler</th>
+              </tr>
+            </thead>
+            <tbody id="media-table-body" class="divide-y divide-app-border/60"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ================= 2. GALERİ GÖRÜNÜMÜ ================= -->
+      <section id="view-gallery" class="hidden space-y-6">
+        <div id="gallery-container"></div>
+        <div class="pt-6 border-t border-app-border">
+          <div class="flex items-center justify-between mb-3 px-2">
+            <h4 id="gallery-strip-title" class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Koleksiyondaki Diğer Yapımlar</h4>
+            <span class="text-xs text-slate-500">Tıklayarak detayını inceleyebilirsin</span>
+          </div>
+          <div id="gallery-strip" class="flex gap-3.5 overflow-x-auto p-2 pb-3.5 items-center"></div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- ================= FİLM / DİZİ EKLE VE DÜZENLE MODALI ================= -->
+  <div id="item-modal" class="fixed inset-0 bg-[#050811]/90 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-app-sidebar border border-app-border rounded-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto shadow-xl p-6 space-y-5">
+      
+      <!-- Modal Başlık ve Kapat Butonu -->
+      <div class="flex items-center justify-between border-b border-app-border pb-4">
+        <div class="flex items-center gap-2.5">
+          <i id="modal-heading-icon" data-lucide="plus-circle" class="w-5 h-5 text-blue-400"></i>
+          <h3 id="modal-heading" class="text-lg font-bold text-white">Yeni Ekle</h3>
+        </div>
+        <button onclick="closeModal()" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- 2 Aşamalı İlerleme Çubuğu -->
+      <div id="modal-step-indicator" class="flex items-center justify-center gap-3 bg-app-bg/60 p-2.5 rounded-xl border border-app-border/80">
+        <div id="step-badge-1" class="flex items-center gap-2 text-xs font-bold text-blue-400">
+          <span class="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] shadow-sm">1</span>
+          <span id="step-1-title">Adını Ara</span>
+        </div>
+        <div class="w-10 h-0.5 bg-slate-700/80"></div>
+        <div id="step-badge-2" class="flex items-center gap-2 text-xs font-medium text-slate-500">
+          <span class="w-5 h-5 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center text-[10px]">2</span>
+          <span>Detaylar, Puan & Not</span>
+        </div>
+      </div>
+
+      <!-- 1. AŞAMA: OMDB ARAMA -->
+      <div id="modal-step-1" class="space-y-4">
+        <div class="bg-blue-950/20 border border-blue-500/30 rounded-xl p-5 space-y-3">
+          <label class="block text-xs font-bold text-blue-400 uppercase tracking-wider flex items-center gap-1.5">
+            <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+            <span>İnternetten Otomatik Bilgi Çek (OMDb)</span>
+          </label>
+          <p id="omdb-step1-desc" class="text-xs text-slate-400">Eklemek istediğiniz adı yazın ve çıkan listeden seçin.</p>
+          
+          <div class="relative">
+            <div class="relative flex items-center">
+              <i data-lucide="search" class="w-4 h-4 text-blue-400/70 absolute left-3.5 pointer-events-none"></i>
+              <input 
+                type="text" 
+                id="omdb-search-input" 
+                placeholder="Aramak için yazın..." 
+                autocomplete="off"
+                spellcheck="false"
+                class="w-full bg-app-bg border border-blue-500/30 rounded-lg pl-10 pr-10 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+              >
+              <div id="omdb-spinner" class="absolute right-3.5 hidden">
+                <i data-lucide="loader-2" class="w-4 h-4 text-blue-400 animate-spin"></i>
+              </div>
+            </div>
+
+            <!-- OMDb Açılır Sonuç Listesi -->
+            <div id="omdb-dropdown" class="hidden absolute left-0 right-0 top-full mt-2 bg-[#0a1020] border border-blue-500/40 rounded-xl shadow-2xl overflow-hidden z-50 max-h-72 overflow-y-auto"></div>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between pt-1 px-1">
+          <span class="text-xs text-slate-500">Listede aradığınız çıkmadı mı?</span>
+          <button type="button" onclick="skipToStep2Manual()" class="text-xs text-blue-400 hover:text-blue-300 font-semibold flex items-center gap-1 hover:underline">
+            <span>Bilgileri manuel girmek için ilerle</span>
+            <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- 2. AŞAMA: DETAY, PUAN VE NOT FORMU -->
+      <form id="item-form" onsubmit="handleFormSubmit(event)" class="space-y-4 hidden">
+        <input type="hidden" id="form-imdbID">
+        <input type="hidden" id="form-poster">
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label id="lbl-form-title" class="block text-xs font-semibold text-slate-400 uppercase mb-1">Adı</label>
+            <input type="text" id="form-title" required autocomplete="off" spellcheck="false" class="w-full bg-app-bg border border-app-border rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Yıl</label>
+              <input type="text" id="form-year" autocomplete="off" spellcheck="false" class="w-full bg-app-bg border border-app-border rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Süre / Sezon</label>
+              <input type="text" id="form-runtime" placeholder="148 dk veya 5 Sezon" autocomplete="off" spellcheck="false" class="w-full bg-app-bg border border-app-border rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label id="lbl-form-director" class="block text-xs font-semibold text-slate-400 uppercase mb-1">Yönetmen / Yapımcı</label>
+            <input type="text" id="form-director" autocomplete="off" spellcheck="false" class="w-full bg-app-bg border border-app-border rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">IMDb Puanı</label>
+            <input type="text" id="form-imdb-rating" placeholder="8.6" autocomplete="off" spellcheck="false" class="w-full bg-app-bg border border-app-border rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Oyuncular</label>
+          <input type="text" id="form-actors" placeholder="Virgülle ayırın" autocomplete="off" spellcheck="false" class="w-full bg-app-bg border border-app-border rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Konu / Özet</label>
+          <textarea id="form-plot" rows="3" spellcheck="false" autocomplete="off" class="w-full bg-app-bg border border-app-border rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-blue-500 leading-relaxed"></textarea>
+        </div>
+
+        <!-- Kullanıcı Puanı Slider -->
+        <div class="bg-app-bg p-4 rounded-xl border border-app-border">
+          <div class="flex items-center justify-between mb-2">
+            <label class="text-xs font-semibold text-slate-400 uppercase">Kullanıcı Puanım (1 - 10)</label>
+            <span id="rating-val-display" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-400 border border-amber-500/40">
+              <i data-lucide="star" class="w-3.5 h-3.5 fill-amber-400 text-amber-400"></i>
+              <span id="rating-val-number">9</span>/10
+            </span>
+          </div>
+          <input type="range" id="form-rating" min="1" max="10" value="9" step="1" oninput="updateRatingDisplay(this.value)" class="w-full accent-amber-500 cursor-pointer">
+        </div>
+
+        <!-- Özel Etiketler -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Özel Etiketler</label>
+          <div class="flex items-center gap-2 mb-2">
+            <input 
+              type="text" 
+              id="tag-input" 
+              placeholder="Yeni etiket (Enter ile ekleyin)..." 
+              autocomplete="off"
+              spellcheck="false"
+              class="flex-1 bg-app-bg border border-app-border rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+              onkeydown="if(event.key === 'Enter'){ event.preventDefault(); addCustomTag(); }"
+            >
+            <button type="button" onclick="addCustomTag()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-semibold rounded-xl transition">Ekle</button>
+          </div>
+          <div id="modal-tags-container" class="flex flex-wrap gap-2 min-h-[32px] p-2 bg-app-bg/50 rounded-xl border border-app-border/60"></div>
+        </div>
+
+        <!-- Kişisel Notlar -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Kişisel Notlar</label>
+          <textarea id="form-notes" rows="3" placeholder="Bu yapım hakkında şahsi notlarınız..." autocomplete="off" spellcheck="false" class="w-full bg-app-bg border border-app-border rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-blue-500 leading-relaxed"></textarea>
+        </div>
+
+        <!-- Butonlar -->
+        <div class="flex items-center justify-between pt-3 border-t border-app-border">
+          <button type="button" id="btn-back-step1" onclick="goToStep(1)" class="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition">
+            <i data-lucide="arrow-left" class="w-4 h-4"></i>
+            <span id="btn-back-text">Geri (Arama)</span>
+          </button>
+          <div class="flex items-center gap-3 ml-auto">
+            <button type="button" onclick="closeModal()" class="px-5 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition">İptal</button>
+            <button type="submit" id="form-submit-btn" class="px-6 py-2.5 rounded-xl text-sm font-semibold bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/30 flex items-center gap-2 transition">
+              <i data-lucide="check" class="w-4 h-4"></i>
+              <span>Koleksiyona Kaydet</span>
+            </button>
+          </div>
+        </div>
+      </form>
+
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT MOTORU -->
+  <script>
+    const NO_POSTER_SVG = "data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='150' viewBox='0 0 100 150'%3E%3Crect width='100%25' height='100%25' fill='%23111a2e'/%3E%3Ctext x='50%25' y='50%25' fill='%2364748b' font-size='11' font-family='sans-serif' text-anchor='middle' dy='.3em'%3EAfi%C5%9F Yok%3C/text%3E%3C/svg%3E";
+
+    let currentMediaType = 'movies'; // 'movies' veya 'series'
+    let currentItems = [];
+    let currentFilterTag = null;
+    let localSearchQuery = "";
+    let currentView = 'list';
+    let selectedGalleryItemId = null;
+    let currentFormTags = [];
+    let omdbDebounceTimer = null;
+    let isEditMode = false;
+
+    function upgradePosterQuality(url) {
+      if (!url || url === 'N/A') return url;
+      if (url.includes('media-amazon.com') || url.includes('imdb.com')) {
+        return url.replace(/@\._V1_.*\.jpg$/i, '@._V1_SX1000.jpg')
+                  .replace(/_SX\d+/i, '_SX1000')
+                  .replace(/_SY\d+/i, '_SX1000');
+      }
+      return url;
+    }
+
+    function sortMediaList(list) {
+      return [...list].sort((a, b) => {
+        const userA = Number(a.user_rating) || 0;
+        const userB = Number(b.user_rating) || 0;
+        if (userB !== userA) {
+          return userB - userA;
+        }
+        const imdbA = parseFloat(a.imdb_rating) || 0;
+        const imdbB = parseFloat(b.imdb_rating) || 0;
+        return imdbB - imdbA;
+      });
+    }
+
+    function getTagStyle(tag) {
+      return { bg: 'bg-slate-800/80', border: 'border-slate-700', text: 'text-slate-300', icon: 'tag' };
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      fetchLibraryData();
+      setupOmdbSearchListener();
+    });
+
+    async function updateLibraryCounts() {
+      try {
+        const res = await fetch('/api/counts');
+        const counts = await res.json();
+        document.getElementById('nav-movies-count').innerText = counts.movies || 0;
+        document.getElementById('nav-series-count').innerText = counts.series || 0;
+      } catch(e) {
+        console.error("Sayaç yükleme hatası:", e);
+      }
+    }
+
+    async function fetchLibraryData() {
+      try {
+        updateLibraryCounts();
+        const res = await fetch(`/api/${currentMediaType}`);
+        const data = await res.json();
+        currentItems = sortMediaList(data);
+
+        if (!selectedGalleryItemId && currentItems.length > 0) {
+          selectedGalleryItemId = currentItems[0].imdbID;
+        } else if (currentItems.length > 0 && !currentItems.some(i => i.imdbID === selectedGalleryItemId)) {
+          selectedGalleryItemId = currentItems[0].imdbID;
+        }
+
+        renderSidebar();
+        renderActiveView();
+      } catch (err) {
+        console.error("Veri yüklenirken hata:", err);
+      }
+    }
+
+    function switchMediaType(type) {
+      if (currentMediaType === type) {
+        filterByTag(null);
+        return;
+      }
+
+      currentMediaType = type;
+      currentFilterTag = null;
+      localSearchQuery = "";
+      document.getElementById('local-search-input').value = "";
+      document.getElementById('clear-search-btn').classList.add('hidden');
+      selectedGalleryItemId = null;
+
+      const isMovie = currentMediaType === 'movies';
+      
+      // Marka ve Arayüz Metinlerini Güncelle
+      document.getElementById('page-title').innerText = isMovie ? "FilmTrack" : "DiziTrack";
+      document.getElementById('brand-title').innerText = isMovie ? "FilmTrack" : "DiziTrack";
+      document.getElementById('add-btn-text').innerText = isMovie ? "Film Ekle" : "Dizi Ekle";
+      document.getElementById('th-title-col').innerText = isMovie ? "Film Adı & Yıl" : "Dizi Adı & Yıl";
+      document.getElementById('th-creator-col').innerText = isMovie ? "Yönetmen" : "Yaratıcı / Yönetmen";
+      document.getElementById('gallery-strip-title').innerText = isMovie ? "Koleksiyondaki Diğer Filmler" : "Koleksiyondaki Diğer Diziler";
+
+      // Sidebar Aktif Sekme Stili
+      const movieBtn = document.getElementById('nav-movies-btn');
+      const seriesBtn = document.getElementById('nav-series-btn');
+
+      if (isMovie) {
+        movieBtn.className = "w-full flex items-center justify-between px-3 py-2.5 rounded-xl font-medium text-xs md:text-sm bg-blue-600/20 text-blue-400 border border-blue-500/30 shadow-lg shadow-blue-900/20 transition-all";
+        seriesBtn.className = "w-full flex items-center justify-between px-3 py-2.5 rounded-xl font-medium text-xs md:text-sm text-slate-400 hover:text-white hover:bg-slate-800/40 border border-transparent transition-all";
+      } else {
+        seriesBtn.className = "w-full flex items-center justify-between px-3 py-2.5 rounded-xl font-medium text-xs md:text-sm bg-blue-600/20 text-blue-400 border border-blue-500/30 shadow-lg shadow-blue-900/20 transition-all";
+        movieBtn.className = "w-full flex items-center justify-between px-3 py-2.5 rounded-xl font-medium text-xs md:text-sm text-slate-400 hover:text-white hover:bg-slate-800/40 border border-transparent transition-all";
+      }
+
+      fetchLibraryData();
+    }
+
+    function handleLocalSearch(query) {
+      localSearchQuery = (query || "").trim();
+      const clearBtn = document.getElementById('clear-search-btn');
+      if (localSearchQuery.length > 0) {
+        clearBtn.classList.remove('hidden');
+      } else {
+        clearBtn.classList.add('hidden');
+      }
+      renderActiveView();
+    }
+
+    function clearLocalSearch() {
+      document.getElementById('local-search-input').value = '';
+      handleLocalSearch('');
+    }
+
+    function parseSearchQuery(query) {
+      let ratingFilter = null;
+      let textFilter = query;
+
+      const puanMatch = textFilter.match(/(?:puan|score|rating):\s*(\d+)/i);
+      if (puanMatch) {
+        ratingFilter = parseInt(puanMatch[1], 10);
+        textFilter = textFilter.replace(puanMatch[0], '').trim();
+      }
+
+      return {
+        ratingFilter,
+        textFilter: textFilter.toLowerCase()
+      };
+    }
+
+    function getFilteredItems() {
+      const { ratingFilter, textFilter } = parseSearchQuery(localSearchQuery);
+
+      const filtered = currentItems.filter(item => {
+        const matchesTag = !currentFilterTag || (item.tags || []).includes(currentFilterTag);
+        if (!matchesTag) return false;
+
+        if (ratingFilter !== null) {
+          if (Number(item.user_rating) !== ratingFilter) {
+            return false;
+          }
+        }
+
+        if (!textFilter) return true;
+
+        const title = (item.title || '').toLowerCase();
+        const director = (item.director || '').toLowerCase();
+        const actors = (item.actors || '').toLowerCase();
+        const notes = (item.notes || '').toLowerCase();
+
+        return title.includes(textFilter) || 
+               director.includes(textFilter) || 
+               actors.includes(textFilter) || 
+               notes.includes(textFilter);
+      });
+
+      return sortMediaList(filtered);
+    }
+
+    function renderSidebar() {
+      const tagCounts = {};
+      currentItems.forEach(m => {
+        (m.tags || []).forEach(t => {
+          tagCounts[t] = (tagCounts[t] || 0) + 1;
+        });
+      });
+
+      const tagsContainer = document.getElementById('sidebar-tags');
+      tagsContainer.innerHTML = '';
+
+      Object.keys(tagCounts).sort().forEach(tag => {
+        const style = getTagStyle(tag);
+        const isActive = currentFilterTag === tag;
+        const tab = document.createElement('button');
+        tab.onclick = () => filterByTag(tag);
+        tab.className = `w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium border transition-all ${
+          isActive 
+            ? 'bg-blue-600/20 text-blue-400 border-blue-500/40 shadow-sm font-semibold' 
+            : 'bg-app-bg/60 border-app-border/70 text-slate-300 hover:bg-app-hover hover:text-white hover:border-slate-700'
+        }`;
+        tab.innerHTML = `
+          <div class="flex items-center gap-2 truncate">
+            <i data-lucide="${style.icon}" class="w-3.5 h-3.5 flex-shrink-0 ${style.text}"></i>
+            <span class="truncate">${tag}</span>
+          </div>
+          <span class="text-[10px] px-1.5 py-0.5 rounded-md bg-slate-800/90 text-slate-400 font-semibold ml-1.5 flex-shrink-0">${tagCounts[tag]}</span>
+        `;
+        tagsContainer.appendChild(tab);
+      });
+
+      lucide.createIcons();
+    }
+
+    function filterByTag(tag) {
+      currentFilterTag = tag;
+      renderSidebar();
+      renderActiveView();
+    }
+
+    function switchView(view) {
+      currentView = view;
+      const btnGal = document.getElementById('view-btn-gallery');
+      const btnList = document.getElementById('view-btn-list');
+
+      if (view === 'gallery') {
+        btnGal.className = "flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white shadow-md shadow-blue-600/30 transition";
+        btnList.className = "flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-white transition";
+        document.getElementById('view-list').classList.add('hidden');
+        document.getElementById('view-gallery').classList.remove('hidden');
+      } else {
+        btnList.className = "flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white shadow-md shadow-blue-600/30 transition";
+        btnGal.className = "flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-white transition";
+        document.getElementById('view-gallery').classList.add('hidden');
+        document.getElementById('view-list').classList.remove('hidden');
+      }
+      renderActiveView();
+    }
+
+    function renderActiveView() {
+      const filtered = getFilteredItems();
+      const titleEl = document.getElementById('view-title');
+      const subEl = document.getElementById('view-subtitle');
+      const isMovie = currentMediaType === 'movies';
+      const termSingle = isMovie ? "film" : "dizi";
+      const termPlural = isMovie ? "Filmler" : "Diziler";
+
+      const { ratingFilter, textFilter } = parseSearchQuery(localSearchQuery);
+
+      if (ratingFilter !== null && textFilter) {
+        titleEl.innerText = `"${textFilter}" & ★ ${ratingFilter} Puan`;
+        subEl.innerText = `${ratingFilter} puan verdiğiniz ve "${textFilter}" ile eşleşen ${termPlural.toLowerCase()} listeleniyor.`;
+      } else if (ratingFilter !== null) {
+        titleEl.innerText = `★ ${ratingFilter} Puan Verdiğim ${termPlural}`;
+        subEl.innerText = `Koleksiyonunuzda ${ratingFilter} puan verdiğiniz ${termPlural.toLowerCase()} listeleniyor.`;
+      } else if (textFilter) {
+        titleEl.innerText = `Arama: "${textFilter}"`;
+        subEl.innerText = `Koleksiyonunuzda eşleşen sonuçlar listeleniyor.`;
+      } else if (currentFilterTag) {
+        titleEl.innerText = `${currentFilterTag} ${termPlural}`;
+        subEl.innerText = `"${currentFilterTag}" etiketine sahip ${termPlural.toLowerCase()} listeleniyor.`;
+      } else {
+        titleEl.innerText = `Tüm ${termPlural}`;
+        subEl.innerText = `Koleksiyonundaki tüm ${termPlural.toLowerCase()} burada görebilirsin.`;
+      }
+
+      document.getElementById('media-badge-count').innerText = `${filtered.length} ${termSingle}`;
+
+      if (currentView === 'list') {
+        renderTableView(filtered);
+      } else {
+        renderGalleryView(filtered);
+      }
+    }
+
+    // ================= 1. LİSTE GÖRÜNÜMÜ =================
+    function renderTableView(items) {
+      const tbody = document.getElementById('media-table-body');
+      tbody.innerHTML = '';
+      const isMovie = currentMediaType === 'movies';
+
+      if (items.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-12 text-slate-500 text-sm">Aradığınız kriterlere uygun ${isMovie ? 'film' : 'dizi'} bulunamadı.</td></tr>`;
+        return;
+      }
+
+      items.forEach(item => {
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-app-hover/50 group";
+        const posterSrc = item.poster_local || upgradePosterQuality(item.poster) || NO_POSTER_SVG;
+
+        const tagsHtml = (item.tags || []).map(t => {
+          const st = getTagStyle(t);
+          return `<span class="inline-block text-[11px] font-medium px-2.5 py-0.5 rounded-full border ${st.bg} ${st.border} ${st.text}">${t}</span>`;
+        }).join(' ');
+
+        tr.innerHTML = `
+          <td class="py-3 px-4">
+            <div class="w-16 aspect-[2/3] shrink-0 overflow-hidden rounded-lg border border-slate-700/60 shadow-md bg-slate-900 flex items-center justify-center">
+              <img src="${posterSrc}" loading="lazy" onerror="this.onerror=null; this.src='${NO_POSTER_SVG}'" alt="${item.title}" class="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform duration-200" onclick="selectAndOpenGallery('${item.imdbID}')">
+            </div>
+          </td>
+          <td class="py-3 px-4">
+            <div class="font-bold text-white text-base hover:text-blue-400 cursor-pointer" onclick="selectAndOpenGallery('${item.imdbID}')">${item.title}</div>
+            <div class="text-xs text-slate-400 font-medium">${item.year}</div>
+          </td>
+          <td class="py-3 px-4 text-slate-300 font-medium text-sm">${item.director || '-'}</td>
+          <td class="py-3 px-4"><div class="flex flex-wrap gap-1.5 max-w-xs">${tagsHtml}</div></td>
+          <td class="py-3 px-4">
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-300 border border-amber-500/40">
+              <i data-lucide="star" class="w-3.5 h-3.5 fill-amber-400 text-amber-400"></i>
+              ${item.user_rating || 0}/10
+            </span>
+          </td>
+          <td class="py-3 px-4">
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[#f5c518] text-black font-black text-xs shadow-sm">
+              IMDb ${item.imdb_rating || '-'}
+            </span>
+          </td>
+          <td class="py-3 px-4 text-xs text-slate-400 leading-relaxed max-w-sm"><p class="line-clamp-2">${item.notes || '-'}</p></td>
+          <td class="py-3 px-4 text-center">
+            <div class="flex items-center justify-center gap-2">
+              <button onclick="openEditModal('${item.imdbID}')" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition" title="Düzenle">
+                <i data-lucide="pencil" class="w-4 h-4"></i>
+              </button>
+              <button onclick="deleteItem('${item.imdbID}')" class="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 transition" title="Sil">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+      lucide.createIcons();
+    }
+
+    // ================= 2. GALERİ GÖRÜNÜMÜ =================
+    function renderGalleryView(items) {
+      const container = document.getElementById('gallery-container');
+      const strip = document.getElementById('gallery-strip');
+      const isMovie = currentMediaType === 'movies';
+
+      if (items.length === 0) {
+        container.innerHTML = `<div class="text-center py-20 text-slate-500 text-sm">Aradığınız kriterlere uygun ${isMovie ? 'film' : 'dizi'} bulunamadı.</div>`;
+        strip.innerHTML = '';
+        return;
+      }
+
+      let activeItem = items.find(m => m.imdbID === selectedGalleryItemId) || items[0];
+      selectedGalleryItemId = activeItem.imdbID;
+
+      let posterSrc = activeItem.poster_local || NO_POSTER_SVG;
+      if (activeItem.poster && activeItem.poster !== "N/A") {
+        posterSrc = upgradePosterQuality(activeItem.poster);
+      }
+
+      const tagsHtml = (activeItem.tags || []).map(t => {
+        const st = getTagStyle(t);
+        return `<span class="inline-block text-xs font-semibold px-3 py-1 rounded-full border ${st.bg} ${st.border} ${st.text}">${t}</span>`;
+      }).join(' ');
+
+      container.innerHTML = `
+        <div class="space-y-6">
+          <div class="flex flex-col lg:flex-row gap-8 items-start">
+            <div class="w-full lg:w-[340px] flex-shrink-0">
+              <div class="w-full aspect-[2/3] max-h-[520px] rounded-2xl shadow-2xl border border-app-border overflow-hidden bg-slate-900">
+                <img src="${posterSrc}" loading="lazy" onerror="this.onerror=null; this.src='${NO_POSTER_SVG}'" alt="${activeItem.title}" class="w-full h-full object-cover">
+              </div>
+            </div>
+            <div class="flex-1 space-y-5">
+              <div class="flex flex-wrap items-center gap-3">
+                <h1 class="text-3xl lg:text-4xl font-extrabold text-white tracking-tight">${activeItem.title}</h1>
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-300 border border-amber-500/40 shadow-sm">
+                  <i data-lucide="star" class="w-3.5 h-3.5 fill-amber-400 text-amber-400"></i>
+                  ${activeItem.user_rating || 0}/10
+                </span>
+                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-[#f5c518] text-black font-black text-xs shadow-sm">
+                  IMDb ${activeItem.imdb_rating || '-'}
+                </span>
+              </div>
+              <div class="text-sm font-semibold text-slate-400">
+                Yıl: <span class="text-white">${activeItem.year}</span> 
+                <span class="mx-2 text-slate-600">|</span> 
+                Süre: <span class="text-white">${activeItem.runtime || '-'}</span>
+              </div>
+              <div class="space-y-1">
+                <div class="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  <i data-lucide="user" class="w-4 h-4 text-slate-400"></i><span>${isMovie ? 'YÖNETMEN' : 'YARATICI / YÖNETMEN'}</span>
+                </div>
+                <p class="text-white font-medium pl-6 text-sm">${activeItem.director || '-'}</p>
+              </div>
+              <div class="space-y-1">
+                <div class="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  <i data-lucide="users" class="w-4 h-4 text-slate-400"></i><span>OYUNCULAR</span>
+                </div>
+                <p class="text-slate-300 font-medium pl-6 text-sm leading-relaxed">${activeItem.actors || '-'}</p>
+              </div>
+              <div class="space-y-2">
+                <div class="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  <i data-lucide="tag" class="w-4 h-4 text-slate-400"></i><span>ETİKETLER</span>
+                </div>
+                <div class="flex flex-wrap gap-2 pl-6">${tagsHtml || '<span class="text-slate-500 text-xs">Etiket eklenmemiş</span>'}</div>
+              </div>
+              <p class="text-slate-300 text-sm leading-relaxed pt-2">${activeItem.plot || '-'}</p>
+            </div>
+          </div>
+
+          <div class="bg-app-sidebar/80 border border-app-border/80 rounded-2xl p-6 shadow-xl relative">
+            <div class="flex items-center justify-between mb-3 border-b border-app-border/60 pb-3">
+              <div class="flex items-center gap-2 text-white font-bold text-base">
+                <i data-lucide="file-text" class="w-4 h-4 text-blue-400"></i><span>Kişisel Notlar</span>
+              </div>
+              <button onclick="openEditModal('${activeItem.imdbID}')" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition" title="Notu Düzenle">
+                <i data-lucide="pencil" class="w-4 h-4"></i>
+              </button>
+            </div>
+            <p class="text-slate-300 text-sm leading-relaxed">${activeItem.notes || 'Bu yapım için henüz kişisel not eklenmemiş.'}</p>
+          </div>
+        </div>
+      `;
+
+      strip.innerHTML = '';
+      items.forEach(m => {
+        const pSrc = m.poster_local || upgradePosterQuality(m.poster) || NO_POSTER_SVG;
+        const isCurrent = m.imdbID === activeItem.imdbID;
+        const thumb = document.createElement('div');
+        thumb.onclick = () => { selectedGalleryItemId = m.imdbID; renderGalleryView(items); };
+        thumb.className = `w-20 aspect-[2/3] flex-shrink-0 cursor-pointer rounded-xl overflow-hidden border-2 transition-all ${
+          isCurrent ? 'border-blue-500 ring-2 ring-blue-500/30 scale-105 shadow-lg shadow-blue-500/20' : 'border-app-border opacity-70 hover:opacity-100 hover:border-slate-600'
+        }`;
+        thumb.innerHTML = `<img src="${pSrc}" loading="lazy" onerror="this.onerror=null; this.src='${NO_POSTER_SVG}'" alt="${m.title}" class="w-full h-full object-cover">`;
+        strip.appendChild(thumb);
+      });
+      lucide.createIcons();
+    }
+
+    function selectAndOpenGallery(imdbID) {
+      selectedGalleryItemId = imdbID;
+      switchView('gallery');
+    }
+
+    // ================= OMDB CANLI ARAMA MOTORU =================
+    function setupOmdbSearchListener() {
+      const input = document.getElementById('omdb-search-input');
+      const dropdown = document.getElementById('omdb-dropdown');
+      const spinner = document.getElementById('omdb-spinner');
+
+      const executeOmdbSearch = async () => {
+        const query = input.value.trim();
+        if (query.length < 2) {
+          dropdown.classList.add('hidden');
+          dropdown.innerHTML = '';
+          return;
+        }
+
+        spinner.classList.remove('hidden');
+
+        try {
+          const omdbType = currentMediaType === 'series' ? 'series' : 'movie';
+          const res = await fetch(`/api/omdb/search?q=${encodeURIComponent(query)}&type=${omdbType}`);
+          const data = await res.json();
+          spinner.classList.add('hidden');
+
+          if (data.Search && data.Search.length > 0) {
+            renderOmdbDropdown(data.Search);
+          } else {
+            const errorMsg = data.Error || 'Sonuç bulunamadı.';
+            dropdown.innerHTML = `<div class="p-3 text-center text-xs text-amber-400 font-medium">${errorMsg}</div>`;
+            dropdown.classList.remove('hidden');
+          }
+        } catch (err) {
+          spinner.classList.add('hidden');
+          dropdown.innerHTML = `<div class="p-3 text-center text-xs text-rose-400">Bağlantı hatası oluştu.</div>`;
+          dropdown.classList.remove('hidden');
+        }
+      };
+
+      input.addEventListener('input', () => {
+        clearTimeout(omdbDebounceTimer);
+        omdbDebounceTimer = setTimeout(executeOmdbSearch, 280);
+      });
+
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          clearTimeout(omdbDebounceTimer);
+          executeOmdbSearch();
+        }
+      });
+
+      document.addEventListener('click', (e) => {
+        if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+          dropdown.classList.add('hidden');
+        }
+      });
+    }
+
+    function renderOmdbDropdown(results) {
+      const dropdown = document.getElementById('omdb-dropdown');
+      dropdown.innerHTML = '';
+
+      results.slice(0, 5).forEach(item => {
+        const row = document.createElement('div');
+        row.className = "flex items-center gap-3 p-2.5 hover:bg-slate-800/90 cursor-pointer border-b border-app-border/40 last:border-b-0 transition";
+        const posterImg = (item.Poster && item.Poster !== "N/A") ? upgradePosterQuality(item.Poster) : NO_POSTER_SVG;
+        
+        row.innerHTML = `
+          <img src="${posterImg}" loading="lazy" onerror="this.onerror=null; this.src='${NO_POSTER_SVG}'" alt="${item.Title}" class="w-8 h-12 object-cover rounded shadow flex-shrink-0">
+          <div class="flex-1 min-w-0">
+            <h5 class="text-xs font-bold text-white truncate">${item.Title}</h5>
+            <p class="text-[11px] text-slate-400">${item.Year} • ${item.Type === 'series' ? 'Dizi' : 'Film'}</p>
+          </div>
+          <span class="px-2.5 py-1 bg-blue-600/30 text-blue-300 text-[11px] font-semibold rounded border border-blue-500/40 flex-shrink-0">Seç ve İlerle →</span>
+        `;
+        row.onclick = () => selectItemFromOMDb(item.imdbID);
+        dropdown.appendChild(row);
+      });
+      dropdown.classList.remove('hidden');
+    }
+
+    async function selectItemFromOMDb(imdbID) {
+      const dropdown = document.getElementById('omdb-dropdown');
+      dropdown.classList.add('hidden');
+      const spinner = document.getElementById('omdb-spinner');
+      spinner.classList.remove('hidden');
+
+      try {
+        const res = await fetch(`/api/omdb/detail?id=${imdbID}`);
+        const data = await res.json();
+        spinner.classList.add('hidden');
+
+        if (data.Response === "True") {
+          const rawGenres = (data.Genre && data.Genre !== "N/A") ? data.Genre.split(',').map(s => s.trim()) : [];
+          
+          fillModalForm({
+            imdbID: data.imdbID,
+            title: data.Title,
+            year: data.Year,
+            runtime: data.Runtime,
+            director: data.Director !== "N/A" ? data.Director : (data.Writer !== "N/A" ? data.Writer : ''),
+            actors: data.Actors !== "N/A" ? data.Actors : '',
+            plot: data.Plot !== "N/A" ? data.Plot : '',
+            tags: rawGenres,
+            user_rating: 8,
+            imdb_rating: data.imdbRating !== "N/A" ? data.imdbRating : '0.0',
+            notes: '',
+            poster: data.Poster !== "N/A" ? upgradePosterQuality(data.Poster) : '',
+          });
+
+          goToStep(2);
+        } else {
+          alert("Detaylar alınamadı.");
+        }
+      } catch (err) {
+        spinner.classList.add('hidden');
+        alert("Bağlantı hatası oluştu.");
+      }
+    }
+
+    // ================= 2 AŞAMALI MODAL AKIŞI =================
+    function goToStep(step) {
+      const step1 = document.getElementById('modal-step-1');
+      const step2 = document.getElementById('item-form');
+      const badge1 = document.getElementById('step-badge-1');
+      const badge2 = document.getElementById('step-badge-2');
+      const backBtn = document.getElementById('btn-back-step1');
+
+      if (step === 1) {
+        step1.classList.remove('hidden');
+        step2.classList.add('hidden');
+        badge1.className = "flex items-center gap-2 text-xs font-bold text-blue-400";
+        badge1.querySelector('span').className = "w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] shadow-sm";
+        badge2.className = "flex items-center gap-2 text-xs font-medium text-slate-500";
+        badge2.querySelector('span').className = "w-5 h-5 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center text-[10px]";
+        
+        setTimeout(() => {
+          document.getElementById('omdb-search-input').focus();
+        }, 50);
+      } else {
+        step1.classList.add('hidden');
+        step2.classList.remove('hidden');
+        badge1.className = "flex items-center gap-2 text-xs font-medium text-emerald-400";
+        badge1.querySelector('span').className = "w-5 h-5 rounded-full bg-emerald-600/30 text-emerald-400 border border-emerald-500/40 flex items-center justify-center text-[10px]";
+        badge2.className = "flex items-center gap-2 text-xs font-bold text-blue-400";
+        badge2.querySelector('span').className = "w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] shadow-sm";
+        
+        if (isEditMode) {
+          backBtn.classList.add('hidden');
+        } else {
+          backBtn.classList.remove('hidden');
+        }
+      }
+      lucide.createIcons();
+    }
+
+    function openAddModal() {
+      isEditMode = false;
+      const isMovie = currentMediaType === 'movies';
+      const labelSingle = isMovie ? "Film" : "Dizi";
+
+      document.getElementById('modal-step-indicator').classList.remove('hidden');
+      document.getElementById('modal-heading').innerText = `Koleksiyona Yeni ${labelSingle} Ekle`;
+      document.getElementById('modal-heading-icon').setAttribute('data-lucide', 'plus-circle');
+      document.getElementById('step-1-title').innerText = `${labelSingle} Adını Ara`;
+      document.getElementById('omdb-step1-desc').innerText = `Eklemek istediğiniz ${labelSingle.toLowerCase()} adını yazın ve çıkan listeden seçin.`;
+      document.getElementById('omdb-search-input').placeholder = isMovie ? "Film adını yazın (Örn: Oppenheimer, Dune, Batman)..." : "Dizi adını yazın (Örn: Breaking Bad, Succession, Dark)...";
+      document.getElementById('lbl-form-title').innerText = `${labelSingle} Adı`;
+      document.getElementById('btn-back-text').innerText = `Geri (${labelSingle} Ara)`;
+
+      document.getElementById('omdb-search-input').value = '';
+      document.getElementById('omdb-dropdown').classList.add('hidden');
+
+      fillModalForm({
+        imdbID: 'custom_' + Date.now(),
+        title: '',
+        year: '',
+        runtime: '',
+        director: '',
+        actors: '',
+        plot: '',
+        tags: [],
+        user_rating: 8,
+        imdb_rating: '',
+        notes: '',
+        poster: ''
+      });
+
+      goToStep(1);
+      document.getElementById('item-modal').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function skipToStep2Manual() {
+      goToStep(2);
+    }
+
+    function openEditModal(imdbID) {
+      const item = currentItems.find(m => m.imdbID === imdbID);
+      if (!item) return;
+
+      isEditMode = true;
+      const isMovie = currentMediaType === 'movies';
+      const labelSingle = isMovie ? "Film" : "Dizi";
+
+      document.getElementById('modal-step-indicator').classList.add('hidden');
+      document.getElementById('modal-heading').innerText = `${labelSingle} Detaylarını Düzenle`;
+      document.getElementById('modal-heading-icon').setAttribute('data-lucide', 'pencil');
+      document.getElementById('lbl-form-title').innerText = `${labelSingle} Adı`;
+
+      fillModalForm(item);
+      goToStep(2);
+      document.getElementById('item-modal').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function fillModalForm(data) {
+      document.getElementById('form-imdbID').value = data.imdbID || '';
+      document.getElementById('form-poster').value = upgradePosterQuality(data.poster || '');
+      document.getElementById('form-title').value = data.title || '';
+      document.getElementById('form-year').value = data.year || '';
+      document.getElementById('form-runtime').value = data.runtime || '';
+      document.getElementById('form-director').value = data.director || '';
+      document.getElementById('form-actors').value = data.actors || '';
+      document.getElementById('form-imdb-rating').value = data.imdb_rating || '';
+      document.getElementById('form-plot').value = data.plot || '';
+      document.getElementById('form-notes').value = data.notes || '';
+      
+      const rating = data.user_rating || 8;
+      document.getElementById('form-rating').value = rating;
+      updateRatingDisplay(rating);
+
+      currentFormTags = [...(data.tags || [])];
+      renderModalTags();
+    }
+
+    function closeModal() {
+      document.getElementById('item-modal').classList.add('hidden');
+      document.getElementById('omdb-dropdown').classList.add('hidden');
+    }
+
+    function updateRatingDisplay(val) {
+      document.getElementById('rating-val-number').textContent = val;
+    }
+
+    function renderModalTags() {
+      const container = document.getElementById('modal-tags-container');
+      container.innerHTML = '';
+      currentFormTags.forEach((tag, idx) => {
+        const style = getTagStyle(tag);
+        const badge = document.createElement('span');
+        badge.className = `inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${style.bg} ${style.border} ${style.text}`;
+        badge.innerHTML = `<span>${tag}</span><button type="button" onclick="removeCustomTag(${idx})" class="hover:text-red-400 ml-1 font-bold">×</button>`;
+        container.appendChild(badge);
+      });
+    }
+
+    function addCustomTag() {
+      const input = document.getElementById('tag-input');
+      const val = input.value.trim();
+      if (val && !currentFormTags.includes(val)) {
+        currentFormTags.push(val);
+        renderModalTags();
+      }
+      input.value = '';
+    }
+
+    function removeCustomTag(index) {
+      currentFormTags.splice(index, 1);
+      renderModalTags();
+    }
+
+    async function handleFormSubmit(e) {
+      e.preventDefault();
+      const submitBtn = document.getElementById('form-submit-btn');
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = `<span>Kaydediliyor...</span>`;
+
+      const itemData = {
+        imdbID: document.getElementById('form-imdbID').value,
+        title: document.getElementById('form-title').value,
+        year: document.getElementById('form-year').value,
+        runtime: document.getElementById('form-runtime').value,
+        director: document.getElementById('form-director').value,
+        actors: document.getElementById('form-actors').value,
+        imdb_rating: document.getElementById('form-imdb-rating').value,
+        plot: document.getElementById('form-plot').value,
+        user_rating: parseInt(document.getElementById('form-rating').value),
+        tags: currentFormTags,
+        notes: document.getElementById('form-notes').value,
+        poster: upgradePosterQuality(document.getElementById('form-poster').value),
+      };
+
+      try {
+        const res = await fetch(`/api/${currentMediaType}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(itemData)
+        });
+
+        if (res.ok) {
+          closeModal();
+          selectedGalleryItemId = itemData.imdbID;
+          await fetchLibraryData();
+        } else {
+          alert("Kayıt sırasında hata oluştu.");
+        }
+      } catch (err) {
+        alert("Bağlantı hatası: " + err);
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = `<i data-lucide="check" class="w-4 h-4"></i><span>Koleksiyona Kaydet</span>`;
+        lucide.createIcons();
+      }
+    }
+
+    async function deleteItem(imdbID) {
+      const isMovie = currentMediaType === 'movies';
+      if (!confirm(`Bu ${isMovie ? 'filmi' : 'diziyi'} koleksiyonunuzdan silmek istediğinize emin misiniz?`)) return;
+
+      try {
+        const res = await fetch(`/api/${currentMediaType}/${imdbID}`, { method: 'DELETE' });
+        if (res.ok) {
+          currentItems = currentItems.filter(m => m.imdbID !== imdbID);
+          if (selectedGalleryItemId === imdbID) {
+            selectedGalleryItemId = currentItems.length > 0 ? currentItems[0].imdbID : null;
+          }
+          updateLibraryCounts();
+          renderSidebar();
+          renderActiveView();
+        }
+      } catch (err) {
+        alert("Silme hatası: " + err);
+      }
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeModal();
+      }
+    });
+  </script>
+</body>
+</html>
