@@ -2,6 +2,13 @@
 
 # 🎬 FilmTracker (FilmTrack & DiziTrack)
 
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/a8ec1f3d-996c-435f-9a11-2d962983dcd4" alt="FilmTracker Showcase" width="100%">
+</p>
+
+## Project Overview
+
 **A sleek, dark-themed personal movie and TV show journal built for cinematic lovers.**  
 *Crafted through "Vibe Coding" — Designed, architected, and curated with passion; generated and brought to life with AI.*
 
